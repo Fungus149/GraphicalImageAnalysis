@@ -10,10 +10,9 @@ def Main():
     contextMenus = ContextMenusView.View(viewmodel)
     view = MainView.View(viewmodel, contextMenus, root)
 
-
     view.Execute()
-    print(root.winfo_children())
     root.mainloop()
+
 
 if __name__ == "__main__":
     Main()
