@@ -1,16 +1,20 @@
 # Views/BlockView.py
-from typing import Any
+from typing import  cast
 from customtkinter import *
 from abc import ABC, abstractmethod
 import tkinter as Tk
 
+from Interfaces.IClickable import IClickable
 from Views.InNode import View as InNodeView
+from Views.OutNode import View as OutNodeView
 from ViewModels.MainViewModel import ViewModel as MainViewModel
 from ViewModels.BlockViewModel import ViewModel
 
-class View():
+class View(IClickable):
     def __init__(self, viewmodel: MainViewModel, id: int, workspace: CTkCanvas, diagramTag: str) -> None:
-        self.bg: int
+        super().__init__()
+        self.nodesIn: list[InNodeView] = []
+        self.nodesOut: list[OutNodeView] = []
         self.label: int
         self.lastX: int
         self.lastY: int
@@ -22,6 +26,7 @@ class View():
         self.workspace: CTkCanvas = workspace
         self.diagramTag: str = diagramTag
         self.blockTag: str = f'block_{id}'
+        self.blockId: int = id
 
     def Instantiate(self, posX: int, posY: int) -> None:
         self.viewmodel: ViewModel = ViewModel(posX, posY)
@@ -35,15 +40,12 @@ class View():
             outline = "#4F4F4F",
             tags=(self.blockTag, self.diagramTag)
         )
-
-        self.workspace.tag_bind(self.blockTag,"<Button-1>", self.OnPress)
-        self.workspace.tag_bind(self.blockTag,"<B1-Motion>", self.OnDrag)
-    
         self.MakeLabel("block",posX,posY)
-        self.MakeConnectors(2,0,posX,posY)
+        self.MakeConnectors(2,1,posX,posY)
 
-
-    @abstractmethod
+        self.workspace.tag_bind(self.bg,"<Button-1>", self.OnClick)
+        self.workspace.tag_bind(self.bg,"<B1-Motion>", self.OnDrag)
+    
     def MakeLabel(self, label: str, posX: int, posY: int) -> None:
         self.label = self.workspace.create_text(
             posX,
@@ -53,31 +55,25 @@ class View():
             fill = "#B6B6B6",
             tags = (self.blockTag, self.diagramTag)
         )
+        self.workspace.tag_bind(self.label,"<Button-1>", self.OnClick)
 
-    @abstractmethod
-    def MakeBody(self, inputs:list[tuple[Any, bool]], outputs: list[tuple]) -> None:
-        pass
-
-    @abstractmethod
     def MakeConnectors(self, numInputs: int, numOutputs: int, posX: int, posY: int) -> None:
         # accepts int,int for how many inputs and outputs
         for input in range(numInputs):
-            node = InNodeView(self.mainViewmodel, self.workspace, self.blockTag, self.diagramTag)
+            node = InNodeView(self, input, self.mainViewmodel, self.workspace, self.diagramTag)
             node.Instantiate(round(posX-self.normalWidth/2), round(posY-self.normalHeight/2 + (input+1) * self.normalHeight/(numInputs+1)))
+            self.nodesIn.append(node)
         for output in range(numOutputs):
-            pass
+            node = OutNodeView(self, output, self.mainViewmodel, self.workspace, self.diagramTag)
+            node.Instantiate(round(posX+self.normalWidth/2), round(posY-self.normalHeight/2 + (output+1) * self.normalHeight/(numOutputs+1)))
+            self.nodesOut.append(node)
 
-    @abstractmethod
     def MakeLabels(self) -> None:
         pass
 
-    def OnPress(self, event: Tk.Event) -> None:
-        self.lastX = event.x
-        self.lastY = event.y
-
     def OnDrag(self, event: Tk.Event) -> None:
         scale = self.mainViewmodel.scale.get()
-        if event.state == 268:
+        if cast(int, event.state) & 0x0004:
             absX: float = (event.x - self.mainViewmodel.offsetX.get()) / scale
             absY: float = (event.y - self.mainViewmodel.offsetY.get()) / scale
             self.viewmodel.absPosX = round(absX / self.normalWidth) * self.normalWidth
@@ -89,9 +85,19 @@ class View():
         self.lastX = event.x
         self.lastY = event.y
         self.UpdatePosition()
+        self.UpdateConnectionsPositions()
 
     def OnZoom(self) -> None:
         self.workspace.itemconfigure(self.label, font=("Arial", round(self.mainViewmodel.labelFont.get()), "bold"))
+
+    def UpdateConnectionsPositions(self):
+        for node in self.nodesOut:
+            for connection in node.connections:
+                connection.UpdatePosition()
+
+        for node in self.nodesIn:
+            if node.connection:
+                node.connection.UpdatePosition()
 
     def UpdatePosition(self) -> None:
         scale = self.mainViewmodel.scale.get()
@@ -106,3 +112,27 @@ class View():
 
         self.viewmodel.worldPosX = self.viewmodel.absPosX
         self.viewmodel.worldPosY = self.viewmodel.absPosY
+
+    def OnClick(self, event: Tk.Event) -> None | str:
+        print("Block clicked")
+        self.lastX = event.x
+        self.lastY = event.y
+
+        if not self.isDown:
+            self.OnSelected()
+        else:
+            self.OnDeselected()
+    
+    def OnSelected(self) -> None:
+        self.workspace.itemconfig(self.bg, fill="#4F4F4F")
+        self.isDown = True
+        selected: tuple[str, IClickable] | None = self.mainViewmodel.selected
+        if selected:
+            selected[1].OnDeselected()
+
+        self.mainViewmodel.selected = ("Block", self)
+    
+    def OnDeselected(self) -> None:
+        self.workspace.itemconfig(self.bg, fill="#1F1F1F")
+        self.isDown = False
+        self.mainViewmodel.selected = None

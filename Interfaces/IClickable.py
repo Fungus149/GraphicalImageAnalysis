@@ -4,9 +4,12 @@ import tkinter as Tk
 
 
 class IClickable(ABC):
+    def __init__(self):
+        self.isDown: bool = False
+        self.bg: int
 
     @abstractmethod
-    def OnClick(self, event: Tk.Event | None = None) -> None | str:
+    def OnClick(self, event: Tk.Event) -> None | str:
         pass
 
     @abstractmethod

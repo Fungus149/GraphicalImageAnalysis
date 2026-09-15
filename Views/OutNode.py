@@ -1,6 +1,4 @@
-# Views/InNode.py
-from typing import cast
-
+# Views/OutNode.py
 from customtkinter import *
 import tkinter as Tk
 
@@ -10,19 +8,18 @@ from ViewModels.MainViewModel import ViewModel as MainViewModel
 
 from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
-    from Views.BlockView import View as BlockView
-    from Views.OutNode import View as OutNodeView
+    from Views.BlockView import View as blockView
 
 class View(IClickable):
-    def __init__(self, parent: BlockView, id: int, mainViewmodel: MainViewModel, workspace: CTkCanvas, diagramTag: str) -> None:
+    def __init__(self, parent: blockView, id: int, mainViewmodel: MainViewModel, workspace: CTkCanvas, diagramTag: str) -> None:
         super().__init__()
-
-        self.connection: ConnectionView | None = None
+        
+        self.connections: list[ConnectionView]  = []
         self.mainViewmodel: MainViewModel = mainViewmodel
-        self.parent: BlockView = parent
+        self.parent: blockView = parent
         self.workspace: CTkCanvas = workspace
         self.diagramTag: str = diagramTag
-        self.nodeTag: str = f"InNode {parent.blockId}, {id}"
+        self.nodeTag: str = f"OutNode {parent.blockId}, {id}"
         self.radius: float = 14
         self.id: int = id
 
@@ -36,44 +33,25 @@ class View(IClickable):
             outline = "#4F4F4F",
             tags=(self.nodeTag, self.parent.blockTag, self.diagramTag)
         )
-        self.workspace.tag_bind(self.bg,"<Button-1>", self.OnClick)
+        self.workspace.tag_bind(self.bg, "<Button-1>", self.OnClick)
 
     def OnClick(self, event: Tk.Event) -> None | str:
-        selected: tuple[str, IClickable] | None = self.mainViewmodel.selected
-        if selected and selected[0] == "OutNode":
-            self.MakeConnection() 
         if not self.isDown:
             self.OnSelected()
         else:
             self.OnDeselected()
 
     def OnSelected(self) -> None:
+        print("selecting out node")
         self.workspace.itemconfig(self.bg, fill=self.mainViewmodel.accentHighlights)
         self.isDown = True
         selected: tuple[str, IClickable] | None = self.mainViewmodel.selected
         if selected:
             selected[1].OnDeselected()
 
-        self.mainViewmodel.selected = ("InNode", self)
-
-        # print(f'{self.mainViewmodel.selected = }')
+        self.mainViewmodel.selected = ("OutNode", self)
 
     def OnDeselected(self) -> None:
         self.workspace.itemconfig(self.bg, fill=self.mainViewmodel.accentColor)
         self.isDown = False
         self.mainViewmodel.selected = None
-
-    def MakeConnection(self) -> None:
-        selected: tuple[str, IClickable] | None = self.mainViewmodel.selected
-        if selected:
-            self.connection = ConnectionView(
-                self.mainViewmodel, 
-                self.nodeTag, 
-                cast("OutNodeView", selected[1]).nodeTag, 
-                self.workspace, 
-                self.diagramTag
-            )
-            self.connection.Instantiate()
-            cast("OutNodeView", selected[1]).connections.append(self.connection)
-
-        
