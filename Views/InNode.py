@@ -1,24 +1,23 @@
 # Views/InNode.py
-from typing import cast
-
 from customtkinter import *
 import tkinter as Tk
 
 from Interfaces.IClickable import IClickable
+from Views.OutNode import View as OutNodeView
 from Views.Connection import View as ConnectionView
-from ViewModels.MainViewModel import ViewModel as MainViewModel
+from ViewModels.MainPresenter import Presenter as MainPresenter
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from Views.BlockView import View as BlockView
-    from Views.OutNode import View as OutNodeView
+    from Views.Block import View as BlockView
 
 class View(IClickable):
-    def __init__(self, parent: BlockView, id: int, mainViewmodel: MainViewModel, workspace: CTkCanvas, diagramTag: str) -> None:
+    def __init__(self, parent: BlockView, id: int, mainPresenter: MainPresenter, workspace: CTkCanvas, diagramTag: str) -> None:
         super().__init__()
 
         self.connection: ConnectionView | None = None
-        self.mainViewmodel: MainViewModel = mainViewmodel
+
+        self.mainPresenter: MainPresenter = mainPresenter
         self.parent: BlockView = parent
         self.workspace: CTkCanvas = workspace
         self.diagramTag: str = diagramTag
@@ -32,48 +31,52 @@ class View(IClickable):
             posY-self.radius, 
             posX+self.radius, 
             posY+self.radius,
-            fill = self.mainViewmodel.accentColor,
+            fill = self.mainPresenter.accentColor,
             outline = "#4F4F4F",
             tags=(self.nodeTag, self.parent.blockTag, self.diagramTag)
         )
         self.workspace.tag_bind(self.bg,"<Button-1>", self.OnClick)
 
-    def OnClick(self, event: Tk.Event) -> None | str:
-        selected: tuple[str, IClickable] | None = self.mainViewmodel.selected
-        if selected and selected[0] == "OutNode":
-            self.MakeConnection() 
+    def OnClick(self, event: Tk.Event) -> None:
+        selectedItems: list[IClickable] = self.mainPresenter.selected
+        
+        self.MakeConnection()
+        for item in selectedItems.copy():
+            if item != self:
+                item.OnDeselected()
+
         if not self.isDown:
             self.OnSelected()
         else:
             self.OnDeselected()
 
     def OnSelected(self) -> None:
-        self.workspace.itemconfig(self.bg, fill=self.mainViewmodel.accentHighlights)
+        self.workspace.itemconfig(self.bg, fill=self.mainPresenter.accentHighlights)
+
+        self.mainPresenter.selected.append(self)
         self.isDown = True
-        selected: tuple[str, IClickable] | None = self.mainViewmodel.selected
-        if selected:
-            selected[1].OnDeselected()
-
-        self.mainViewmodel.selected = ("InNode", self)
-
-        # print(f'{self.mainViewmodel.selected = }')
 
     def OnDeselected(self) -> None:
-        self.workspace.itemconfig(self.bg, fill=self.mainViewmodel.accentColor)
+        self.workspace.itemconfig(self.bg, fill=self.mainPresenter.accentColor)
+
+        self.mainPresenter.selected.remove(self)
         self.isDown = False
-        self.mainViewmodel.selected = None
 
     def MakeConnection(self) -> None:
-        selected: tuple[str, IClickable] | None = self.mainViewmodel.selected
-        if selected:
-            self.connection = ConnectionView(
-                self.mainViewmodel, 
-                self.nodeTag, 
-                cast("OutNodeView", selected[1]).nodeTag, 
-                self.workspace, 
-                self.diagramTag
-            )
-            self.connection.Instantiate()
-            cast("OutNodeView", selected[1]).connections.append(self.connection)
+        selectedItems: list[IClickable] = self.mainPresenter.selected
+
+        if len(selectedItems) != 1 or type(selectedItems[0]) is not OutNodeView:
+            return
+        
+        self.connection = ConnectionView(
+            self.mainPresenter, 
+            selectedItems[0], 
+            self,
+            self.workspace, 
+            self.diagramTag
+        )
+        self.connection.Instantiate()
+        
+        selectedItems[0].connections.append(self.connection)
 
         

@@ -3,11 +3,10 @@ from typing import Callable
 
 from customtkinter import *
 from Utilities.CustomWidgets import CustomWidgets
-from ViewModels.MainViewModel import ViewModel
-
+from ViewModels.MainPresenter import Presenter as MainPresenter
 class View():
-    def __init__(self, viewmodel: ViewModel) -> None:
-        self.viewmodel: ViewModel = viewmodel
+    def __init__(self) -> None:
+        pass
 
     def CreateFilesMenu(self, parent: CTkFrame | CTk) -> CTkFrame:
         options: dict[str, Callable] = dict()

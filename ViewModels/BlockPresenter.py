@@ -1,4 +1,4 @@
-class ViewModel():
+class Presenter():
 
     inVals: tuple
     outVals: tuple
@@ -9,3 +9,7 @@ class ViewModel():
 
         self.worldPosX = posX
         self.worldPosY = posY
+
+    def ChangePosition(self, dx: float, dy: float):
+        self.absPosX += dx
+        self.absPosY += dy

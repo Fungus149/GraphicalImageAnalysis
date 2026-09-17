@@ -5,10 +5,9 @@ from customtkinter import *
 from Utilities.CustomWidgets import CustomWidgets
 from Utilities.WidgetsUtilities import WidgetsUtilities
 from Views.ContextMenusView import View as contextView
-from ViewModels.MainViewModel import ViewModel as mainViewModel
 
 class View():
-    def __init__(self, root: CTk, viewmodel: mainViewModel) -> None:
+    def __init__(self, root: CTk) -> None:
         self.menuFrame: CTkFrame
         self.fileBtn: CTkButton
         self.fileMenu: CTkFrame
@@ -18,8 +17,7 @@ class View():
         self.addMenu: CTkFrame
 
         self.root: CTk = root
-        self.mainViewmodel: mainViewModel = viewmodel
-        self.contextMenus: contextView = contextView(viewmodel)
+        self.contextMenus: contextView = contextView()
 
     def CreateMenuBar(self) -> CTkFrame:
         self.menuFrame = CTkFrame(self.root, fg_color="#4F4F4F")
