@@ -3,7 +3,7 @@ from customtkinter import *
 import tkinter as Tk
 
 from Interfaces.IClickable import IClickable
-from ViewModels.MainPresenter import Presenter as MainPresenter
+from Presenters.MainPresenter import Presenter as MainPresenter
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from Views.InNode import View as InNodeView
 
 class View(IClickable):
-    def __init__(self, mainPresenter: MainPresenter, parent: OutNodeView, child: InNodeView, workspace: CTkCanvas, diagramTag: str) -> None:
+    def __init__(self, mainPresenter: MainPresenter, parent: OutNodeView, child: InNodeView) -> None:
         super().__init__()
         self.bg1: int
         self.bg2: int
@@ -20,8 +20,7 @@ class View(IClickable):
         self.mainPresenter: MainPresenter = mainPresenter
         self.parent: OutNodeView = parent
         self.child: InNodeView = child
-        self.workspace: CTkCanvas = workspace
-        self.diagramTag: str = diagramTag
+        self.workspace: CTkCanvas = mainPresenter.workspace
 
     def Instantiate(self) -> None:
         outX0, outY0, outXf, outYf = self.workspace.coords(self.child.nodeTag)
@@ -38,21 +37,21 @@ class View(IClickable):
             midX, y0,
             fill=self.mainPresenter.accentColor,
             width=4,
-            tags=(self.diagramTag)
+            tags=(self.mainPresenter.diagramTag)
         )
         self.bg2 = self.workspace.create_line(
             midX, y0,
             midX, yf,
             fill=self.mainPresenter.accentColor,
             width=4,
-            tags=(self.diagramTag)
+            tags=(self.mainPresenter.diagramTag)
         )
         self.bg3 = self.workspace.create_line(
             midX, yf,
             xf, yf,
             fill=self.mainPresenter.accentColor,
             width=4,
-            tags=(self.diagramTag)
+            tags=(self.mainPresenter.diagramTag)
         )
         self.workspace.tag_lower(self.bg1)
         self.workspace.tag_lower(self.bg2)

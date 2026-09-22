@@ -1,5 +1,4 @@
 # Views/MenuBar.py
-
 from customtkinter import *
 
 from Utilities.CustomWidgets import CustomWidgets

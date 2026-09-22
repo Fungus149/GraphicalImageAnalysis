@@ -5,7 +5,9 @@ import tkinter as Tk
 from Interfaces.IClickable import IClickable
 from Views.Connection import View as ConnectionView
 from Views.Block import View as BlockView
-from ViewModels.MainPresenter import Presenter as MainPresenter
+from Presenters.MainPresenter import Presenter as MainPresenter
+from Presenters.Blocks.ConstantB import Presenter as ConstantPresenter
+from Presenters.Blocks.PlotB import Presenter as PlotPresenter
 
 class View():
     def __init__(self, root: CTk, mainPresenter: MainPresenter) -> None:
@@ -16,7 +18,6 @@ class View():
         self.selectionStartY: float
 
         self.blocks: list[BlockView] = []
-        self.diagramTag: str = "diagram"
         self.lastBlockId: int = 0
         self.selectionBox: int | None = None
 
@@ -30,6 +31,7 @@ class View():
             bd = 0,
             highlightthickness = 0
         )
+        self.mainPresenter.workspace = self.workspace
 
         self.workspace.bind("<Button-1>", self.OnWorkspaceClick)
         self.workspace.bind("<B1-Motion>", self.OnSelectionDrag)
@@ -39,17 +41,20 @@ class View():
         self.workspace.bind("<MouseWheel>", self.OnZoom)
         self.workspace.bind("<KeyRelease-Delete>", self.OnDelete)
 
-        block = BlockView(self.mainPresenter,self.lastBlockId, self.workspace, self.diagramTag)
+        presenter = ConstantPresenter()
+        block = BlockView(presenter, self.mainPresenter,self.lastBlockId)
         block.Instantiate(200,200)
         self.blocks.append(block)
         self.lastBlockId+=1
 
-        block2 = BlockView(self.mainPresenter,self.lastBlockId, self.workspace, self.diagramTag)
+        presenter = ConstantPresenter()
+        block2 = BlockView(presenter, self.mainPresenter,self.lastBlockId)
         block2.Instantiate(400,200)
         self.blocks.append(block2)
         self.lastBlockId+=1
 
-        block3 = BlockView(self.mainPresenter,self.lastBlockId, self.workspace, self.diagramTag)
+        presenter = PlotPresenter()
+        block3 = BlockView(presenter, self.mainPresenter,self.lastBlockId)
         block3.Instantiate(400,400)
         self.blocks.append(block3)
         self.lastBlockId+=1
@@ -122,7 +127,7 @@ class View():
 
         dx: float = x - self.lastX
         dy: float = y - self.lastY
-        self.workspace.move(self.diagramTag, dx, dy)
+        self.workspace.move(self.mainPresenter.diagramTag, dx, dy)
 
         self.lastX = x
         self.lastY = y
@@ -133,7 +138,7 @@ class View():
 
         scale: float = self.mainPresenter.scale * zoom
         if scale > 0.1 and scale < 10:
-            self.workspace.scale(self.diagramTag, event.x, event.y, zoom, zoom )
+            self.workspace.scale(self.mainPresenter.diagramTag, event.x, event.y, zoom, zoom )
             for block in self.blocks:
                 block.OnZoom()
 

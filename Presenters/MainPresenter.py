@@ -1,17 +1,23 @@
 # ViewModels/MainViewModel.py
 from Interfaces.IClickable import IClickable
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from customtkinter import *
+
 class Presenter:
     def __init__(self) -> None:
-        # self.accentColor: str = "#004141"
-        # self.accentHighlights: str = "#00F1F1"
+        self.workspace: CTkCanvas
+        self.diagramTag: str = "diagram"
+
+        self.selected: list[IClickable] = []
         self.accentColor: str = "#004141"
         self.accentHighlights: str = "#00F1F1"
-        self.selected: list[IClickable] = []
         self.offsetX: float = 0
         self.offsetY: float = 0
-        self.scale: float =1
+        self.scale: float = 1
         self.labelFont: float = 14
+        self.headerFont: float = 10
 
     def ChangeOffset(self, dx: float, dy: float) -> None:
         self.offsetX = round(self.offsetX+dx, 2)
@@ -22,3 +28,4 @@ class Presenter:
         self.offsetY = anchorY - (anchorY - self.offsetY) * zoom
         self.scale = self.scale * zoom
         self.labelFont = self.labelFont * zoom
+        self.headerFont = self.headerFont * zoom

@@ -3,7 +3,6 @@ from typing import Callable
 
 from customtkinter import *
 from Utilities.CustomWidgets import CustomWidgets
-from ViewModels.MainPresenter import Presenter as MainPresenter
 class View():
     def __init__(self) -> None:
         pass

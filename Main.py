@@ -1,7 +1,7 @@
 # Main.py
 from customtkinter import *
 from Views import MainView
-from ViewModels import MainPresenter
+from Presenters import MainPresenter
 
 def Main():
     deactivate_automatic_dpi_awareness()
@@ -16,6 +16,7 @@ if __name__ == "__main__":
     Main()
 
 # TODO
-# add blocks and connections deletion
+# finish entries
+# make dropdowns
+# finish blocks creation
 # start blocks functionalities
-# deleting blocks and connections

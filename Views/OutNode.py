@@ -4,23 +4,23 @@ import tkinter as Tk
 
 from Interfaces.IClickable import IClickable
 from Views.Connection import View as ConnectionView
-from ViewModels.MainPresenter import Presenter as MainPresenter
+from Presenters.MainPresenter import Presenter as MainPresenter
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from Views.Block import View as BlockView
 
 class View(IClickable):
-    def __init__(self, parent: BlockView, id: int, mainPresenter: MainPresenter, workspace: CTkCanvas, diagramTag: str) -> None:
+    def __init__(self, parent: BlockView, id: int, mainPresenter: MainPresenter) -> None:
         super().__init__()
-        
+
         self.connections: list[ConnectionView]  = []
+        self.radius: float = 14
+        
         self.mainPresenter: MainPresenter = mainPresenter
         self.parent: BlockView = parent
-        self.workspace: CTkCanvas = workspace
-        self.diagramTag: str = diagramTag
+        self.workspace: CTkCanvas = mainPresenter.workspace
         self.nodeTag: str = f"OutNode {parent.blockId}, {id}"
-        self.radius: float = 14
         self.id: int = id
 
     def Instantiate(self, posX: int, posY: int) -> None:
@@ -31,7 +31,7 @@ class View(IClickable):
             posY+self.radius,
             fill = self.mainPresenter.accentColor,
             outline = "#4F4F4F",
-            tags=(self.nodeTag, self.parent.blockTag, self.diagramTag)
+            tags=(self.nodeTag, self.parent.blockTag, self.mainPresenter.diagramTag)
         )
         self.workspace.tag_bind(self.bg, "<Button-1>", self.OnClick)
 

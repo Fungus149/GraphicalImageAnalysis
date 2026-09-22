@@ -6,12 +6,11 @@ import tkinter as Tk
 
 from Views.MenuBar import View as MenuBarView
 from Views.Workspace import View as WorkspaceView
-from ViewModels.MainPresenter import Presenter as MainPresenter
+from Presenters.MainPresenter import Presenter as MainPresenter
 
 class View():
     def __init__(self, mainPresenter: MainPresenter, root: CTk) -> None:
         self.menu: MenuBarView
-        self.workspace: WorkspaceView
         self.menuFrame: CTkFrame
         self.workspaceCanvas: CTkCanvas
 
@@ -37,8 +36,9 @@ class View():
         self.menuFrame = self.menu.CreateMenuBar()
 
     def CreateMainFrame(self) -> None:
-        self.workspace = WorkspaceView(self.root, self.mainPresenter)
-        self.workspaceCanvas = self.workspace.CreateWorkspace()
+        workspace = WorkspaceView(self.root, self.mainPresenter)
+        self.workspaceCanvas = workspace.CreateWorkspace() 
+        # self.mainPresenter.workspace = 
 
     def OnGlobalClick(self, event: Tk.Event) -> None:
         widget: CTkFrame = cast(CTkFrame, event.widget)
