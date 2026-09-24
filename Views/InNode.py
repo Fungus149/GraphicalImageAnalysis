@@ -64,6 +64,9 @@ class View(IClickable):
     def MakeConnection(self) -> None:
         selectedItems: list[IClickable] = self.mainPresenter.selected
 
+        if self.connection is not None:
+            self.connection.Delete()
+
         if len(selectedItems) != 1 or type(selectedItems[0]) is not OutNodeView:
             return
         
@@ -71,8 +74,9 @@ class View(IClickable):
         self.connection.Instantiate()
 
         selectedItems[0].parent.presenter.outputs[selectedItems[0].id].append((self.parent.presenter,self.id))
-        self.parent.presenter.inVals[self.id] = selectedItems[0].parent.presenter.outVals[selectedItems[0].id]
+        self.parent.presenter.SetInVal(
+            self.id,
+            selectedItems[0].parent.presenter.outVals[selectedItems[0].id]
+        )
         selectedItems[0].connections.append(self.connection)
-        self.parent.presenter.Update()
-
-        
+        self.parent.HideEntry(self.id)

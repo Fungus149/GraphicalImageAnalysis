@@ -118,6 +118,9 @@ class View(IClickable):
     def Delete(self):
         self.parent.connections.remove(self)
         self.child.connection = None
+
+        self.parent.parent.presenter.outputs[self.parent.id].remove((self.child.parent.presenter,self.child.id))
+        self.child.parent.ShowEntry(self.child.id)
         self.workspace.delete(self.bg1)
         self.workspace.delete(self.bg2)
         self.workspace.delete(self.bg3)

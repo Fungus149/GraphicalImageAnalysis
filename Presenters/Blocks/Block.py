@@ -8,10 +8,10 @@ class Presenter(ABC):
     def __init__(self) -> None:
         self.inStruct: list[InNodeRequest]
         self.outStruct: list[OutNodeRequest]
-        self.options: list[str] | None = None
         self.raiseError: Callable[[str], None]
         self.title: str
 
+        self.options: list[str] | None = None
         self.absPosX: float = 0
         self.absPosY: float = 0
         self.worldPosX: float = 0
@@ -19,17 +19,15 @@ class Presenter(ABC):
         self.normalWidth: float = 240.0
         self.normalHeight: float = 160.0
 
-        
-        self.outputs: list[list[tuple[Presenter,int]]] = list([] for _ in self.outStruct)
-        self.inVals: list[Any] = list(0 for _ in self.inStruct)
-        self.outVals: list[Any] = list(0 for _ in self.outStruct)
+        self.outputs: list[list[tuple[Presenter,int]]] = [[] for _ in self.outStruct]
+        self.inVals: list[Any] = [[[0.0]] for _ in self.inStruct]
+        self.outVals: list[Any] = [[[0.0]] for _ in self.outStruct]
 
     def Update(self):
-        if self.outputs != None:
-            for targets, outVal in zip(self.outputs,self.outVals):
-                for target, id in targets:
-                    target.inVals[id] = outVal
-                    target.Update()
+        for targets, outVal in zip(self.outputs,self.outVals):
+            for target, id in targets:
+                target.inVals[id] = outVal
+                target.Update()
 
     def ChangePosition(self, dx: float, dy: float):
         self.absPosX += dx
@@ -39,7 +37,7 @@ class Presenter(ABC):
         self.worldPosX = self.absPosX
         self.worldPosY = self.absPosY
 
-    def SetOutVal(self, id: int, value: float) -> None:
+    def SetInVal(self, id: int, value: list[list[float | int | str]]) -> None:
         self.inVals[id] = value
         self.Update()
 

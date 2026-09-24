@@ -10,12 +10,10 @@ class Presenter(BlockPresenter):
             InNodeRequest("constant", "entry", "float")
         ]
         self.outStruct = [
-            OutNodeRequest("")
+            OutNodeRequest()
         ]
         super().__init__()
 
-        self.Update()
-
     def Update(self):
-        self.outVals = self.inVals
+        self.outVals = self.inVals.copy()
         super().Update()

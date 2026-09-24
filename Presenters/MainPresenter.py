@@ -1,9 +1,11 @@
 # ViewModels/MainViewModel.py
+from typing import Callable
 from Interfaces.IClickable import IClickable
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from customtkinter import *
+    import tkinter as Tk
 
 class Presenter:
     def __init__(self) -> None:
@@ -11,6 +13,7 @@ class Presenter:
         self.diagramTag: str = "diagram"
 
         self.selected: list[IClickable] = []
+        self.scrollHandler: Callable[[Tk.Event], str] | None = None
         self.accentColor: str = "#004141"
         self.accentHighlights: str = "#00F1F1"
         self.offsetX: float = 0

@@ -27,9 +27,10 @@ class View(IClickable):
 
         self.nodesIn: list[InNodeView] = []
         self.nodesOut: list[OutNodeView] = []
-        self.entries: list[CanvasEntry] = []
+        self.entries: dict[int, CanvasEntry] = {}
         self.dropdowns: list = []
         self.headers: list[int] = []
+        self.errorBox: CTkToplevel | None = None
 
         self.mainPresenter: MainPresenter = mainPresenter
         self.presenter: Presenter = presenter
@@ -40,7 +41,7 @@ class View(IClickable):
         self.normalHeight: float = presenter.normalHeight
         self.blockId: int = blockId
 
-        self.presenter.raiseError=self.RaiseError
+        self.presenter.raiseError = self.RaiseError
 
     def Instantiate(self, posX: int, posY: int) -> None:
         self.presenter.ChangePosition(posX,posY)
@@ -59,21 +60,27 @@ class View(IClickable):
 
         self.workspace.tag_bind(self.bg,"<Button-1>", self.OnClick)
         self.workspace.tag_bind(self.bg,"<B1-Motion>", self.OnDrag)
+
+        self.presenter.Update()
     
     def MakeBody(self):
+        i: int = 0
+
         inStruct: list[InNodeRequest] = self.presenter.inStruct
         outStruct: list[OutNodeRequest] = self.presenter.outStruct
         posX: float = self.presenter.absPosX
         posY: float = self.presenter.absPosY
+
         leftEdge: int = round(posX-self.normalWidth/2)
         rightEdge: int = round(posX+self.normalWidth/2)
-        i: int = 0
-
         for request in inStruct:
-            node = InNodeView(self, i, self.mainPresenter)
             currentHeight: int = round(posY-self.normalHeight/2 + (i+1) * self.normalHeight/(len(inStruct)+1))
-            node.Instantiate(leftEdge, currentHeight)
-            self.nodesIn.append(node)
+            
+            if request.isVisible:
+                node = InNodeView(self, i, self.mainPresenter)
+                node.Instantiate(leftEdge, currentHeight)
+
+                self.nodesIn.append(node)
             match request.type:
                 case "label":
                     self.MakeNodeHeader(request.label, leftEdge, currentHeight,"w")
@@ -82,23 +89,17 @@ class View(IClickable):
                         self.MakeNodeEntry(request.label, request.entryType, leftEdge, currentHeight,i)
                     else:
                         print(f"WARNING--- entry \"{request.label}\" on block \"{self.presenter.title}\" did not generate since entryType was not provided ---WARNING")
-                # case "dropdown":
-                #     if request.dropdownOptions:
-                #         self.MakeNodeDropdown(request.dropdownOptions, leftEdge, currentHeight,i)
-                #     else:
-                #         print(f"WARNING--- dropdown \"{request.label}\" on block \"{self.presenter.title}\" did not generate since entryType was not provided ---WARNING")
-
 
             i+=1
 
-        i: int = 0
+        i = 0
         for request in outStruct:
             node = OutNodeView(self, i, self.mainPresenter)
-            currentHeight: int = round(posY-self.normalHeight/2 + (i+1) * self.normalHeight/(len(inStruct)+1))
+            currentHeight: int = round(posY-self.normalHeight/2 + (i+1) * self.normalHeight/(len(outStruct)+1))
             node.Instantiate(rightEdge, currentHeight)
+
             self.nodesOut.append(node)
             self.MakeNodeHeader(request.label, rightEdge, currentHeight,"e")
-
             i+=1
 
     def MakeLabel(self, posX: int, posY: int) -> None:
@@ -134,16 +135,14 @@ class View(IClickable):
         )
 
     def MakeNodeEntry(self, label: str, type: Literal["str", "float", "int"], posX: int, posY: int, id) -> None:
-        self.entries.append(
-            CanvasEntry(
-                self.blockTag,
-                label,
-                type,
-                posX,
-                posY,
-                lambda value: self.presenter.SetOutVal(id, value),
-                self.mainPresenter
-            )
+        self.entries[id] = CanvasEntry(
+            self.blockTag,
+            label,
+            type,
+            posX,
+            posY,
+            lambda value: self.presenter.SetInVal(id, value),
+            self.mainPresenter
         )
 
     def MakeNodeDropdown(self, options: list[str], posX: int, posY: int, id) -> None:
@@ -161,17 +160,19 @@ class View(IClickable):
         self.lastX = event.x
         self.lastY = event.y
 
-        if self not in selectedItems:
-            for item in selectedItems.copy():
-                item.OnDeselected()
-        else:
-            self.OnDeselected()
+        if len(selectedItems) == 1:
+            if self in selectedItems:
+                self.OnDeselected()
+                return
 
-        if not self.isDown:
+            selectedItems[0].OnDeselected()
             self.OnSelected()
         else:
-            self.OnDeselected()
-    
+            if not self.isDown:
+                for item in selectedItems.copy():
+                    item.OnDeselected()
+                self.OnSelected()
+        
     def OnSelected(self) -> None:
         self.workspace.itemconfig(self.bg, fill="#4F4F4F")
 
@@ -222,7 +223,7 @@ class View(IClickable):
                 header, 
                 font=("Arial", round(self.mainPresenter.headerFont))
             ) 
-        for entry in self.entries:
+        for entry in self.entries.values():
             entry.OnZoom()
 
     def UpdateConnectionsPositions(self) -> None:
@@ -246,8 +247,15 @@ class View(IClickable):
         )
         self.presenter.UpdateWorldPos()
 
+    def HideEntry(self, id):
+        if id in self.entries.keys():
+            self.entries[id].Disable()
+
+    def ShowEntry(self, id):
+        if id in self.entries.keys():
+            self.entries[id].Enable()
+
     def Delete(self) -> None:
-        self.RaiseError("block deleted")
         for node in self.nodesIn:
             if node.connection is not None:
                 node.connection.Delete()
@@ -257,18 +265,29 @@ class View(IClickable):
 
         self.workspace.delete(self.blockTag)
 
-    def RaiseError(self, errorMsg: str):
-        x0, y0, xf, yf = self.workspace.coords(self.bg)
-        errorBox: CTkToplevel = CTkToplevel(self.workspace)
+    def RaiseError(self, errorMsg: str) -> None:
+        if self.errorBox is not None:
+            self.errorBox.destroy()
 
-        CTkLabel(errorBox, text = errorMsg).pack()
-        midX: float = (xf - x0)/2 + x0
-        midY: float = (yf - y0)/2 + y0
-        errorBox.update_idletasks()
-        width: int = errorBox.winfo_width()
-        height: int = errorBox.winfo_height()
-        canvasX: int = self.workspace.winfo_rootx()
-        canvasY: int = self.workspace.winfo_rooty()
-        screenX: int = int(canvasX + midX - width / 2)
-        screenY: int = int(canvasY + midY - height / 2)
-        errorBox.geometry(f"{width}x{height}+{screenX}+{screenY}")
+        x0, y0, xf, yf = self.workspace.coords(self.bg)
+
+        self.errorBox = CTkToplevel(self.workspace)
+        errorLabel: CTkLabel = CTkLabel(self.errorBox, text=errorMsg)
+
+        self.errorBox.bind("<FocusOut>", self.OnErrorFocusOut)
+        self.errorBox.update_idletasks()
+
+        midX: float = (x0 + xf) / 2
+        midY: float = (y0 + yf) / 2
+        width: int = self.errorBox.winfo_width()
+        height: int = self.errorBox.winfo_height()
+        screenX: int = int(self.workspace.winfo_rootx() + midX - width / 2)
+        screenY: int = int(self.workspace.winfo_rooty() + midY - height / 2)
+
+        errorLabel.pack(padx=10, pady=10)
+        self.errorBox.geometry(f"{width}x{height}+{screenX}+{screenY}")
+
+    def OnErrorFocusOut(self, event: Tk.Event) -> None:
+        if self.errorBox is not None:
+            self.errorBox.destroy()
+            self.errorBox = None

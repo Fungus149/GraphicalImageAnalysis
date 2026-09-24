@@ -5,9 +5,11 @@ import tkinter as Tk
 from Interfaces.IClickable import IClickable
 from Views.Connection import View as ConnectionView
 from Views.Block import View as BlockView
+from Views.PlotBlockView import PlotBlockView
 from Presenters.MainPresenter import Presenter as MainPresenter
 from Presenters.Blocks.ConstantB import Presenter as ConstantPresenter
 from Presenters.Blocks.PlotB import Presenter as PlotPresenter
+from Presenters.Blocks.FGenB import Presenter as FGenPresenter
 
 class View():
     def __init__(self, root: CTk, mainPresenter: MainPresenter) -> None:
@@ -20,7 +22,7 @@ class View():
         self.blocks: list[BlockView] = []
         self.lastBlockId: int = 0
         self.selectionBox: int | None = None
-
+        
         self.mainPresenter: MainPresenter = mainPresenter
         self.root: CTk = root
     
@@ -47,14 +49,14 @@ class View():
         self.blocks.append(block)
         self.lastBlockId+=1
 
-        presenter = ConstantPresenter()
+        presenter = FGenPresenter()
         block2 = BlockView(presenter, self.mainPresenter,self.lastBlockId)
         block2.Instantiate(400,200)
         self.blocks.append(block2)
         self.lastBlockId+=1
 
         presenter = PlotPresenter()
-        block3 = BlockView(presenter, self.mainPresenter,self.lastBlockId)
+        block3 = PlotBlockView(presenter, self.mainPresenter,self.lastBlockId)
         block3.Instantiate(400,400)
         self.blocks.append(block3)
         self.lastBlockId+=1
@@ -134,6 +136,10 @@ class View():
         self.mainPresenter.ChangeOffset(dx,dy)
 
     def OnZoom(self, event: Tk.Event) -> None:
+        if self.mainPresenter.scrollHandler is not None:
+            self.mainPresenter.scrollHandler(event)
+            return
+            
         zoom: float = 1 + 0.1 * round(event.delta / 120)
 
         scale: float = self.mainPresenter.scale * zoom
