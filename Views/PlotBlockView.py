@@ -4,6 +4,7 @@ import tkinter as Tk
 from typing import Any
 
 from Views.Block import View as BlockView
+from Views.Tooltip import View as TooltipView
 from Presenters.MainPresenter import Presenter as MainPresenter
 from Presenters.Blocks.PlotB import Presenter
 
@@ -15,11 +16,11 @@ class PlotBlockView(BlockView):
         self.plotLastY: float
 
         self.plotItems: list[int] = []
+        self.tooltip: TooltipView = TooltipView(self.workspace)
         self.plotScale: float = 1.0
         self.plotOffsetX: float = 0.0
         self.plotOffsetY: float = 0.0
-        self.plotWidth: float = 200.0
-        self.plotHeight: float = 200.0
+        self.plotRadius: float = 200.0
         self.dotRadius: float = 3.0
 
         self.plotPresenter: Presenter = presenter
@@ -28,10 +29,11 @@ class PlotBlockView(BlockView):
 
     def Instantiate(self, posX: int, posY: int) -> None:
         self.plotTag: str = f'plot_{self.blockTag}'
+
         super().Instantiate(posX, posY)
         self.DrawPlotArea()
-
         self.Update()
+
         self.workspace.tag_bind(self.plotTag, "<Button-1>", self.OnPlotPanStart)
         self.workspace.tag_bind(self.plotTag, "<B1-Motion>", self.OnPlotPan)
         self.workspace.tag_bind(self.plotTag, "<Enter>", self.OnPlotEnter)
@@ -42,10 +44,10 @@ class PlotBlockView(BlockView):
 
         centerX: float = (x0 + x1) / 2
         centerY: float = (y0 + y1) / 2
-        left: float = centerX - self.plotWidth / 2
-        right: float = centerX + self.plotWidth / 2
-        top: float = centerY - self.plotHeight / 2
-        bottom: float = centerY + self.plotHeight / 2
+        left: float = centerX - self.plotRadius / 2
+        right: float = centerX + self.plotRadius / 2
+        top: float = centerY - self.plotRadius / 2
+        bottom: float = centerY + self.plotRadius / 2
         self.plotArea: int = self.workspace.create_rectangle(
             left,
             top,
@@ -85,6 +87,9 @@ class PlotBlockView(BlockView):
         self.DrawPlot(inputData, entries, layers)
 
     def CalculateInitialScale(self, inputData: list[Any], entries: int, layers: int) -> None:
+        xScale: float
+        yScale: float
+        
         maxY: float = 0.0
 
         for i in range(entries):
@@ -96,31 +101,29 @@ class PlotBlockView(BlockView):
                     maxY = max(maxY, abs(value))
 
         if entries <= 1:
-            xScale: float = self.plotWidth
+            xScale = self.plotRadius
         else:
-            xScale = self.plotWidth / (entries - 1)
+            xScale = self.plotRadius / (entries - 1)
 
         if maxY == 0:
-            yScale: float = self.plotHeight / 2
+            yScale = self.plotRadius / 2
         else:
-            yScale = (self.plotHeight / 2) / maxY
+            yScale = (self.plotRadius / 2) / maxY
 
         self.plotScale = min(xScale, yScale)
-
         if self.plotScale < 1:
             self.plotScale = 1
 
     def DrawPlot(self, inputData: list[Any], entries: int, layers: int) -> None:
         x0, y0, x1, y1 = self.workspace.coords(self.bg)
+        padding: float = (self.normalWidth - self.plotRadius ) /2 * self.mainPresenter.scale
 
-        centerX: float = (x0 + x1) / 2
-        centerY: float = (y0 + y1) / 2
-        left: float = centerX - self.plotWidth * self.mainPresenter.scale / 2
-        right: float = centerX + self.plotWidth * self.mainPresenter.scale / 2
-        top: float = centerY - self.plotHeight * self.mainPresenter.scale / 2
-        bottom: float = centerY + self.plotHeight * self.mainPresenter.scale / 2
+        left: float = x0 + padding
+        right: float = x1 - padding
+        top: float = y0 + padding
+        bottom: float = y1 - padding
         originX: float = left + self.plotOffsetX
-        originY: float = centerY + self.plotOffsetY
+        originY: float = (y0 + y1) / 2 + self.plotOffsetY
         colors: tuple[str, str, str, str] = (
             "red",
             "green",
@@ -158,7 +161,18 @@ class PlotBlockView(BlockView):
                     outline="",
                     tags=(self.blockTag, self.plotTag, self.diagramTag)
                 )
+                self.workspace.tag_bind(dot, "<Enter>", 
+                    lambda event, x=i, y=value:
+                        self.OnDotEnter(event, x, y)
+                )
+                self.workspace.tag_bind(dot, "<Leave>", self.OnDotLeave)
                 self.plotItems.append(dot)
+
+    def OnDotEnter(self, event: Tk.Event, xValue: int, yValue: float,) -> None:
+        self.tooltip.Show(f"x: {xValue}\ny: {yValue}", event.x_root + 10, event.y_root + 10)
+
+    def OnDotLeave(self, event: Tk.Event) -> None:
+        self.tooltip.Hide()
 
     def DrawAxes(self, left: float, top: float, right: float, bottom: float, originX: float, originY: float) -> None:
         if top <= originY <= bottom:
@@ -181,14 +195,14 @@ class PlotBlockView(BlockView):
             )
             self.plotItems.append(axis)
 
-    def DrawAsymptote(self, x: float, top: float, bottom: float, left: float, right: float, color: str) -> None:
-        if x < left or x > right:
+    def DrawAsymptote(self, posX: float, top: float, bottom: float, left: float, right: float, color: str) -> None:
+        if posX < left or posX > right:
             return
 
         line: int = self.workspace.create_line(
-            x,
+            posX,
             top,
-            x,
+            posX,
             bottom,
             fill=color,
             dash=(4, 4),

@@ -5,6 +5,7 @@ from customtkinter import *
 import tkinter as Tk
 
 from Presenters.MainPresenter import Presenter as MainPresenter
+from Views.Tooltip import View as TooltipView
 
 class CanvasEntry:
     def __init__(
@@ -18,7 +19,6 @@ class CanvasEntry:
             mainPresenter: MainPresenter
         ) -> None:
 
-        self.tooltip: CTkToplevel | None = None
         self.tooltipAfter: str | None = None
         self.itemWidth: int = 106
         self.itemHeight: int = 24
@@ -30,7 +30,8 @@ class CanvasEntry:
         self.diagramTag: str = mainPresenter.diagramTag
         self.blockTag: str = blockTag
         self.label: str = label
-
+        
+        self.tooltip: TooltipView = TooltipView(self.workspace)
         self.entry: CTkEntry = CTkEntry(
             self.workspace,
             width=self.itemWidth,
@@ -58,19 +59,13 @@ class CanvasEntry:
     def OnFocusOut(self, event: Tk.Event) -> None:
         self.Commit()
 
-    def Disable(self):
-        self.entry.configure(
-            text_color = "#888888",
-            state='disabled',
-        )
+    def Disable(self) -> None:
+        self.entry.configure(text_color = "#888888", state='disabled',)
         self.entry.delete(0, "end")
         self.entry.insert(0, self.label)
 
-    def Enable(self):
-        self.entry.configure(
-            text_color = "#D9E1EC",
-            state='normal',
-        )
+    def Enable(self) -> None:
+        self.entry.configure(text_color = "#D9E1EC", state='normal',)
 
     def Commit(self) -> None:
         value: float | int | str
@@ -93,41 +88,14 @@ class CanvasEntry:
         self.onChange([[value]])
 
     def OnMouseEnter(self, event: Tk.Event) -> None:
-        self.tooltipAfter = self.entry.after(
-            500,
-            self.ShowTooltip
-        )
+        self.tooltip.Show(self.label, event.x_root + 10, event.y_root + 10)
 
     def OnMouseLeave(self, event: Tk.Event) -> None:
-        if self.tooltipAfter is not None:
-            self.entry.after_cancel(self.tooltipAfter)
-            self.tooltipAfter = None
-
-        if self.tooltip is not None:
-            self.tooltip.destroy()
-            self.tooltip = None
-
-    def ShowTooltip(self) -> None:
-        x: int = self.entry.winfo_rootx()
-        y: int = self.entry.winfo_rooty()
-
-        self.tooltip = CTkToplevel(self.entry)
-        self.tooltip.overrideredirect(True)
-
-        CTkLabel(
-            self.tooltip,
-            text=self.label
-        ).pack(padx=5, pady=3)
-
-        self.tooltip.update_idletasks()
-        self.tooltip.geometry(f"+{x}+{y}")
+        self.tooltip.Hide()
 
     def OnZoom(self) -> None:
         scale = self.mainPresenter.scale
-        self.entry.configure(
-            width=int(self.itemWidth * scale),
-            height=int(self.itemHeight * scale)
-        )
+        self.entry.configure(width=int(self.itemWidth * scale), height=int(self.itemHeight * scale))
 
     def Delete(self) -> None:
         self.workspace.delete(self.window)
